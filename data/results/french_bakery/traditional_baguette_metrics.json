@@ -1,0 +1,21 @@
+{
+    "dataset": "French bakery daily sales from Kaggle",
+    "product": "TRADITIONAL BAGUETTE",
+    "target": "next_day_quantity_sold",
+    "training_period": "2021-01-30 to 2022-04-03",
+    "validation_period": "2022-04-04 to 2022-07-02",
+    "test_period": "2022-07-03 to 2022-09-30",
+    "test_days": 90,
+    "baseline": {
+        "mae": 78.58888888888889,
+        "rmse": 100.88811184233309
+    },
+    "random_forest": {
+        "mae": 48.59768299028954,
+        "rmse": 70.23074894262568
+    },
+    "chosen_settings": {
+        "max_depth": 12,
+        "min_samples_leaf": 2
+    }
+}

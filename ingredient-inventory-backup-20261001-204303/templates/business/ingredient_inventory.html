@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ingredient Inventory | FoodCast</title>
+    {% for css in
+    ['style.css','business.css','theme.css','sidebar.css','dashboard.css','ingredient_inventory.css']
+    %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename=css) }}{{ '?v=20261001-7' if css == 'ingredient_inventory.css' else '' }}"
+    />
+    {% endfor %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='manager_ingredient_inventory.css') }}?v=20261001-7"
+    />
+    <script src="{{ url_for('theme_script') }}"></script>
+    <script src="{{ url_for('sidebar_script') }}"></script>
+  </head>
+  <body class="foodcast-ingredients">
+    <div class="shell">
+      {% include 'business/sidebar.html' %}
+      <div class="main">
+        {% include 'business/header.html' %}
+        <main class="content ingredient-page">
+          {% for m in
+          get_flashed_messages(category_filter=['ingredient_success']) %}
+          <div class="business-success">✓ {{ m }}</div>
+          {% endfor %}{% for m in
+          get_flashed_messages(category_filter=['ingredient_error']) %}
+          <p class="business-error">{{ m }}</p>
+          {% endfor %}
+          <section class="ingredient-heading">
+            <div class="ingredient-heading-copy">
+              <div>
+                <h1>Ingredient Inventory</h1>
+                <p>
+                  Monitor ingredients, deliveries, expiration dates, and waste.
+                </p>
+              </div>
+            </div>
+          </section>
+          <section class="ingredient-summary">
+            <article>
+              <b aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m4 7 8-4 8 4-8 4-8-4Z" />
+                  <path d="M4 7v10l8 4 8-4V7M12 11v10" />
+                </svg>
+              </b>
+              <div>
+                <span>Total Ingredients</span
+                ><strong>{{ ingredients|length }}</strong>
+              </div>
+            </article>
+            <button
+              type="button"
+              class="ingredient-summary-filter"
+              title="Move selected ingredients to Trashbin"
+              aria-label="Move selected ingredients to Trashbin"
+              aria-pressed="false"
+            >
+              <b aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m5 12 4 4 10-10" />
+                </svg>
+              </b>
+              <div>
+                <span>Enough Stock</span
+                ><strong
+                  >{{ ingredients|selectattr('stock_label','equalto','Enough
+                  Stock')|list|length }}</strong
+                >
+              </div>
+            </button>
+            <button
+              type="button"
+              class="ingredient-summary-filter out-of-stock"
+              data-summary-filter="out"
+              aria-pressed="false"
+            >
+              <b aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="m5.6 5.6 12.8 12.8" />
+                </svg>
+              </b>
+              <div>
+                <span>Out of Stock</span
+                ><strong
+                  >{{ ingredients|selectattr('stock_label','equalto','Out of
+                  Stock')|list|length }}</strong
+                >
+              </div>
+            </button>
+            <button
+              type="button"
+              class="ingredient-summary-filter expiring"
+              data-summary-filter="expiring"
+              aria-pressed="false"
+            >
+              <b>◷</b>
+              <div>
+                <span>Expiring</span
+                ><strong
+                  >{{ ingredients|selectattr('stock_label','equalto','Expires
+                  Soon')|list|length }}</strong
+                >
+              </div>
+            </button>
+          </section>
+          {% if recommendations %}{% set urgent=recommendations[0] %}
+          <section class="forecast-alert" id="restock-alert">
+            <div class="forecast-lead">
+              <b>!</b>
+              <div>
+                <h2 id="restock-title">Restock {{ urgent.ingredient_name }}</h2>
+                <p id="restock-reason">{{ urgent.reason }}.</p>
+              </div>
+            </div>
+            <dl>
+              <div>
+                <dt>Available</dt>
+                <dd id="restock-available">
+                  {{ '{:,.3f}'.format(urgent.available).rstrip('0').rstrip('.')
+                  }} {{ urgent.base_unit }}
+                </dd>
+              </div>
+              <div>
+                <dt>Required</dt>
+                <dd id="restock-required">
+                  {{ '{:,.3f}'.format(urgent.required).rstrip('0').rstrip('.')
+                  }} {{ urgent.base_unit }}
+                </dd>
+              </div>
+              <div>
+                <dt>Recommended</dt>
+                <dd id="restock-recommended">
+                  Restock {{
+                  '{:,.3f}'.format(urgent.restock_quantity).rstrip('0').rstrip('.')
+                  }} {{ urgent.base_unit }}
+                </dd>
+              </div>
+            </dl>
+            <div class="restock-actions">
+              <div class="restock-navigation">
+                <button
+                  type="button"
+                  id="restock-previous"
+                  aria-label="Previous restock recommendation"
+                >
+                  ‹
+                </button>
+                <span id="restock-position"
+                  >1 / {{ recommendations|length }}</span
+                >
+                <button
+                  type="button"
+                  id="restock-next"
+                  aria-label="Next restock recommendation"
+                >
+                  ›
+                </button>
+              </div>
+
+              <a href="{{ url_for('business_forecasting') }}">
+                View Forecast Details →
+              </a>
+            </div>
+            <div id="restock-sources" hidden>
+              {% for item in recommendations %}<span
+                data-name="{{ item.ingredient_name }}"
+                data-reason="{{ item.reason }}."
+                data-available="{{ '{:,.3f}'.format(item.available).rstrip('0').rstrip('.') }} {{ item.base_unit }}"
+                data-required="{{ '{:,.3f}'.format(item.required).rstrip('0').rstrip('.') }} {{ item.base_unit }}"
+                data-recommended="Restock {{ '{:,.3f}'.format(item.restock_quantity).rstrip('0').rstrip('.') }} {{ item.base_unit }}"
+              ></span
+              >{% endfor %}
+            </div>
+          </section>
+          {% elif forecast_info %}
+          <section class="forecast-alert forecast-ok">
+            <div class="forecast-lead">
+              <b>✓</b>
+              <div>
+                <h2>Enough stock for the next forecast</h2>
+                <p>No ingredient shortage was found.</p>
+              </div>
+            </div>
+            <a href="{{ url_for('business_forecasting') }}"
+              >View Forecast Details →</a
+            >
+          </section>
+          {% endif %}
+          <section class="ingredient-card inventory-table-card">
+            <div class="inventory-tools">
+              <div class="inventory-title">
+                <div>
+                  <h2>Ingredients</h2>
+                </div>
+              </div>
+              <div class="bulk">
+                <span id="selected-count">0 selected</span
+                ><button
+                  type="button"
+                  id="toggle-selection"
+                  class="btn btn-outline products-select-button select-mode-button"
+                  aria-pressed="false"
+                >
+                  Select</button
+                ><button
+                  type="button"
+                  id="bulk-edit"
+                  class="icon-btn"
+                  title="Edit selected ingredient"
+                  aria-label="Edit selected ingredient"
+                  disabled
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 20h9"></path>
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+                  </svg></button
+                ><button
+                  type="button"
+                  id="bulk-delete"
+                  class="icon-btn icon-btn-danger"
+                  title="Move selected ingredients to Trashbin"
+                  aria-label="Move selected ingredients to Trashbin"
+                  disabled
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18"></path>
+                    <path d="M8 6V4h8v2"></path>
+                    <path d="M19 6l-1 14H6L5 6"></path>
+                    <path d="M10 11v5M14 11v5"></path>
+                  </svg></button
+                ><button
+                  type="button"
+                  class="ingredient-trash-button"
+                  data-open="ingredient-trash-dialog"
+                  aria-label="Open ingredient trash"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18"></path>
+                    <path d="M8 6V4h8v2"></path>
+                    <path d="M19 6l-1 14H6L5 6"></path>
+                  </svg>
+                  Trashbin{% if trashed_ingredients %}<b
+                    >{{ trashed_ingredients|length }}</b
+                  >{% endif %}
+                </button>
+                <details class="ingredient-manage-menu">
+                  <summary
+                    class="ingredient-manage-trigger"
+                    aria-label="Manage ingredients"
+                    title="Manage ingredients"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 7h6m4 0h6M4 17h2m4 0h10"></path>
+                      <circle cx="12" cy="7" r="2"></circle>
+                      <circle cx="8" cy="17" r="2"></circle>
+                    </svg>
+                  </summary>
+                  <div class="ingredient-manage-dropdown">
+                    <button type="button" data-open="ingredient-dialog">
+                      <span aria-hidden="true">＋</span>Add Ingredient
+                    </button>
+                    <button type="button" data-open="receive-dialog">
+                      <span aria-hidden="true">⇩</span>Receive Stock
+                    </button>
+                    <button
+                      type="button"
+                      class="ingredient-waste-action"
+                      data-open="waste-dialog"
+                    >
+                      <span aria-hidden="true">♲</span>Record Waste
+                    </button>
+                    <button type="button" data-open="adjust-dialog">
+                      <span aria-hidden="true">☷</span>Adjust Stock
+                    </button>
+                  </div>
+                </details>
+                <a
+                  class="icon-btn ingredient-import-button"
+                  href="{{ url_for('import_ingredients') }}"
+                  title="Import Excel"
+                  aria-label="Import Excel"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 3v12"></path>
+                    <path d="m7 10 5 5 5-5"></path>
+                    <path d="M5 17v3h14v-3"></path>
+                  </svg> </a
+                ><a
+                  class="icon-btn ingredient-export-button"
+                  href="{{ url_for('export_ingredients') }}"
+                  title="Export Excel"
+                  aria-label="Export Excel"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 15V3"></path>
+                    <path d="m7 8 5-5 5 5"></path>
+                    <path d="M5 17v3h14v-3"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+            <div class="ingredient-filters">
+              <label class="ingredient-search"
+                >⌕
+                <input
+                  id="ingredient-search"
+                  value="{{ search }}"
+                  placeholder="Search ingredients..." /></label
+              ><select id="status-filter" aria-label="Filter by status">
+                <option value="">All Status</option>
+                <option value="enough">Enough Stock</option>
+                <option value="low">Low Stock</option>
+                <option value="out">Out of Stock</option>
+                <option value="expiring">Expiring</option></select
+              ><select
+                id="category-filter"
+                aria-label="Filter by measurement category"
+              >
+                <option value="">All Categories</option>
+                {% for u in base_units %}
+                <option value="{{ u }}">{{ u }}</option>
+                {% endfor %}
+              </select>
+              <div class="ingredient-sort">
+                <span>Sort by</span
+                ><select id="sort-filter" aria-label="Sort ingredients">
+                  <option value="name">Ingredient Name</option>
+                  <option value="stock-asc">Stock: Low to High</option>
+                  <option value="stock-desc">Stock: High to Low</option>
+                  <option value="expiry">Nearest Expiration</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                id="reset-filters"
+                class="icon-action reset-filter"
+                title="Reset filters"
+                aria-label="Reset ingredient filters"
+              >
+                ↶
+              </button>
+            </div>
+            {% if ingredients %}
+            <div class="ingredient-table-wrap">
+              <table class="ingredient-table">
+                <thead>
+                  <tr>
+                    <th class="ingredient-select-column">
+                      <input type="checkbox" id="select-all" />
+                    </th>
+                    <th>Ingredient</th>
+                    <th>Current Stock</th>
+                    <th>Low-stock Level</th>
+                    <th>Nearest Expiration</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for i in ingredients %}
+                  <tr
+                    data-row
+                    data-name="{{ i.ingredient_name|lower }}"
+                    data-label="{{ i.ingredient_name }}"
+                    data-id="{{ i.ingredient_id }}"
+                    data-unit="{{ i.base_unit }}"
+                    data-threshold="{{ i.low_stock_threshold }}"
+                    data-status="{{ i.status }}"
+                    data-stock-class="{{ i.stock_class }}"
+                    data-summary-class="{{ 'out' if i.stock_label == 'Out of Stock' else ('low' if i.stock_label == 'Running Low' else ('expiring' if i.stock_label == 'Expires Soon' else 'enough')) }}"
+                    data-stock="{{ i.usable_stock }}"
+                    data-expiry="{{ i.nearest_expiration.isoformat() if i.nearest_expiration else '' }}"
+                  >
+                    <td class="ingredient-select-column">
+                      <input type="checkbox" class="row-check" />
+                    </td>
+                    <td>
+                      <strong>{{ i.ingredient_name }}</strong>{% if
+                      i.expired_stock>0 %}<small
+                        >{{ i.expired_stock }} {{ i.base_unit }} expired</small
+                      >{% endif %}
+                    </td>
+                    <td>
+                      {{
+                      '{:,.3f}'.format(i.usable_stock).rstrip('0').rstrip('.')
+                      }} {{ i.base_unit }}
+                    </td>
+                    <td>
+                      {{
+                      '{:,.3f}'.format(i.low_stock_threshold).rstrip('0').rstrip('.')
+                      }} {{ i.base_unit }}
+                    </td>
+                    <td>
+                      {{ i.nearest_expiration.strftime('%b %d, %Y') if
+                      i.nearest_expiration else 'No dated batch' }}
+                    </td>
+                    <td>
+                      <span class="ingredient-status {{ i.stock_class }}"
+                        ><i></i>{{ i.stock_label }}</span
+                      >
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              <p id="search-empty" hidden>No ingredients match your filters.</p>
+            </div>
+            <div class="pagination">
+              <span id="page-summary"></span>
+              <div id="page-buttons"></div>
+            </div>
+            {% else %}
+            <div class="ingredient-empty">
+              <h3>No ingredients yet</h3>
+              <p>
+                Add the raw ingredients your business uses to prepare products.
+              </p>
+              <button class="btn btn-primary" data-open="ingredient-dialog">
+                Add First Ingredient
+              </button>
+            </div>
+            {% endif %}
+          </section>
+          <div class="ingredient-two-columns">
+            <section class="ingredient-card compact-card">
+              <header>
+                <div>
+                  <h2>◷ Use First</h2>
+                  <p>Earliest-expiring batches appear first.</p>
+                </div>
+                <button class="section-link" data-open="batches-dialog">
+                  View All Batches →
+                </button>
+              </header>
+              <div class="batch-list">
+                {% for b in batches[:4] %}
+                <article>
+                  <div>
+                    <strong>{{ b.ingredient_name }}</strong
+                    ><span>Batch #{{ '%03d'|format(b.batch_id) }}</span>
+                  </div>
+                  <div>
+                    <b>{{ b.remaining_quantity }} {{ b.base_unit }}</b
+                    ><span
+                      >Received {{ b.received_date.strftime('%b %d, %Y')
+                      }}</span
+                    >
+                  </div>
+                  <div>
+                    <span>Expires</span
+                    ><b
+                      >{{ b.expiration_date.strftime('%b %d, %Y') if
+                      b.expiration_date else 'Not set' }}</b
+                    >
+                  </div>
+                </article>
+                {% else %}
+                <p>No open batches.</p>
+                {% endfor %}
+              </div>
+            </section>
+            <section class="ingredient-card compact-card">
+              <header>
+                <div>
+                  <h2>▤ Recent History</h2>
+                  <p>Every stock change is recorded.</p>
+                </div>
+                <button class="section-link" data-open="history-dialog">
+                  View All History →
+                </button>
+              </header>
+              <div class="history-list">
+                {% for e in history[:4] %}
+                <article>
+                  <span class="history-type {{ e.transaction_type|lower }}"
+                    >{{ e.transaction_type.replace('_',' ') }}</span
+                  >
+                  <div>
+                    <strong>{{ e.ingredient_name }}</strong
+                    ><small
+                      >{{ e.created_at.strftime('%b %d, %Y %I:%M %p') }} · {{
+                      e.display_name }}</small
+                    >
+                  </div>
+                  <b>{{ e.quantity }} {{ e.base_unit }}</b>
+                </article>
+                {% else %}
+                <p>No inventory history yet.</p>
+                {% endfor %}
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+    {% macro head(title,subtitle) %}
+    <header>
+      <div>
+        <h2>{{ title }}</h2>
+        <p>{{ subtitle }}</p>
+      </div>
+      <button type="button" data-close>×</button>
+    </header>
+    {% endmacro %}
+    <dialog
+      id="ingredient-dialog"
+      class="ingredient-dialog"
+      data-reopen-on-load="{{ 'true' if reopen_add_ingredient or ingredient_added else 'false' }}"
+    >
+      <form method="post">
+        {% if ingredient_added %}
+        <div
+          id="ingredient-added-toast"
+          class="ingredient-added-toast"
+          role="status"
+        >
+          Ingredient added
+        </div>
+        {% endif %}
+        <input
+          type="hidden"
+          name="csrf_token"
+          value="{{ csrf_token() }}"
+        /><input type="hidden" name="action" value="add_ingredient" /><input
+          type="hidden"
+          name="ingredient_id"
+        />{{ head('Add Ingredient','Create a raw ingredient used by your
+        business.') }}<label
+          >Ingredient Name<input
+            name="ingredient_name"
+            maxlength="100"
+            required
+        /></label>
+        <div class="dialog-grid">
+          <label class="ingredient-unit-field">
+            <span>Measurement Unit</span>
+            <div class="ingredient-unit-dropdown">
+              <button
+                type="button"
+                class="ingredient-unit-trigger"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                data-unit-trigger
+              >
+                <span data-unit-label>{{ base_units[0] }}</span
+                ><b aria-hidden="true">⌄</b>
+              </button>
+              <div class="ingredient-unit-menu" hidden>
+                <div class="ingredient-unit-options" role="listbox">
+                  {% for u in base_units %}
+                  <div class="ingredient-unit-row">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected="{{ 'true' if loop.first else 'false' }}"
+                      data-unit-option="{{ u }}"
+                    >
+                      {{ u }}
+                    </button>
+                    <button
+                      type="button"
+                      class="ingredient-unit-remove"
+                      data-remove-unit="{{ u }}"
+                      aria-label="Remove {{ u }}"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="ingredient-unit-add" data-unit-add>
+                  ＋ Add
+                </button>
+              </div>
+              <select
+                name="base_unit"
+                tabindex="-1"
+                aria-hidden="true"
+                hidden
+                required
+              >
+                {% for u in base_units %}
+                <option value="{{ u }}" {% if loop.first %}selected{% endif %}>
+                  {{ u }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="ingredient-unit-add-control" hidden>
+              <input
+                type="text"
+                id="ingredient-unit-new-value"
+                maxlength="40"
+                placeholder="Type new measurement unit"
+                aria-label="New measurement unit"
+              />
+              <button
+                type="button"
+                id="save-ingredient-unit"
+                aria-label="Save measurement unit"
+                title="Save measurement unit"
+              >
+                ✓
+              </button>
+              <button
+                type="button"
+                class="ingredient-unit-add-cancel"
+                id="cancel-ingredient-unit"
+                aria-label="Cancel adding measurement unit"
+                title="Cancel"
+              >
+                ×
+              </button>
+            </div> </label
+          ><label
+            >Running Low At<input
+              type="number"
+              name="low_stock_threshold"
+              min="0"
+              step=".001"
+              value="0"
+              required
+          /></label>
+        </div>
+        <footer>
+          <button class="btn btn-primary">Save Ingredient</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog id="receive-dialog" class="ingredient-dialog">
+      <form method="post">
+        <input
+          type="hidden"
+          name="csrf_token"
+          value="{{ csrf_token() }}"
+        /><input type="hidden" name="action" value="receive_stock" />{{
+        head('Receive Stock','Add a delivered ingredient batch.') }}<label
+          >Ingredient<select name="ingredient_id" required>
+            <option value="">Choose an ingredient</option>
+            {% for i in ingredient_choices %}
+            <option value="{{ i.ingredient_id }}">
+              {{ i.ingredient_name }} ({{ i.base_unit }})
+            </option>
+            {% endfor %}
+          </select></label
+        ><label
+          >Quantity Received<input
+            type="number"
+            name="quantity"
+            min=".001"
+            step=".001"
+            required
+        /></label>
+        <div class="dialog-grid">
+          <label
+            >Received Date<input
+              type="date"
+              name="received_date"
+              value="{{ today }}"
+              required /></label
+          ><label
+            >Expiration Date <small>(optional)</small
+            ><input type="date" name="expiration_date"
+          /></label>
+        </div>
+        <footer>
+          <button type="button" class="btn btn-outline" data-close>
+            Cancel</button
+          ><button class="btn btn-primary">Add Stock</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog id="waste-dialog" class="ingredient-dialog">
+      <form method="post">
+        <input
+          type="hidden"
+          name="csrf_token"
+          value="{{ csrf_token() }}"
+        /><input type="hidden" name="action" value="record_waste" />{{
+        head('Record Waste','Deduct spoiled, expired, or damaged ingredients.')
+        }}<label
+          >Ingredient<select name="ingredient_id" required>
+            <option value="">Choose an ingredient</option>
+            {% for i in ingredient_choices %}
+            <option value="{{ i.ingredient_id }}">
+              {{ i.ingredient_name }} ({{ i.base_unit }})
+            </option>
+            {% endfor %}
+          </select></label
+        >
+        <div class="dialog-grid">
+          <label
+            >Quantity<input
+              type="number"
+              name="quantity"
+              min=".001"
+              step=".001"
+              required /></label
+          ><label
+            >Reason<select name="reason">
+              {% for r in waste_reasons %}
+              <option>{{ r }}</option>
+              {% endfor %}
+            </select></label
+          >
+        </div>
+        <label>Notes<textarea name="notes" maxlength="255"></textarea></label>
+        <footer>
+          <button type="button" class="btn btn-outline" data-close>
+            Cancel</button
+          ><button class="btn btn-primary">Record Waste</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog id="adjust-dialog" class="ingredient-dialog">
+      <form method="post">
+        <input
+          type="hidden"
+          name="csrf_token"
+          value="{{ csrf_token() }}"
+        /><input type="hidden" name="action" value="adjust_stock" />{{
+        head('Adjust Stock','Correct Foodcast using the quantity you physically
+        counted.') }}<label
+          >Ingredient<select
+            name="ingredient_id"
+            id="adjust-ingredient"
+            required
+          >
+            <option value="">Choose an ingredient</option>
+            {% for i in ingredients %}
+            <option
+              value="{{ i.ingredient_id }}"
+              data-stock="{{ i.usable_stock }}"
+              data-unit="{{ i.base_unit }}"
+            >
+              {{ i.ingredient_name }} ({{ i.base_unit }})
+            </option>
+            {% endfor %}
+          </select></label
+        >
+        <div id="adjustment-current" class="adjustment-current">
+          Choose an ingredient to see its current usable stock.
+        </div>
+        <label
+          >Actual Quantity<input
+            type="number"
+            name="actual_quantity"
+            min="0"
+            step=".001"
+            required /></label
+        ><label
+          >Reason<select name="adjustment_reason" required>
+            <option value="">Choose a reason</option>
+            {% for r in adjustment_reasons %}
+            <option>{{ r }}</option>
+            {% endfor %}
+          </select></label
+        ><label
+          >Expiration Date <small>(only when adding stock)</small
+          ><input
+            type="date"
+            name="adjustment_expiration_date"
+            min="{{ today }}" /></label
+        ><label>Notes<textarea name="notes" maxlength="255"></textarea></label>
+        <div class="adjustment-warning">
+          <strong>Use this only to correct a stock count.</strong
+          ><span
+            >Use Receive Stock for deliveries and Record Waste for losses.</span
+          >
+        </div>
+        <footer>
+          <button type="button" class="btn btn-outline" data-close>
+            Cancel</button
+          ><button class="btn btn-primary">Save Adjustment</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog id="delete-dialog" class="ingredient-dialog">
+      <form method="post">
+        <input
+          type="hidden"
+          name="csrf_token"
+          value="{{ csrf_token() }}"
+        /><input type="hidden" name="action" value="delete_ingredients" />
+        <div id="delete-inputs"></div>
+        {{ head('Move to Trash?','Selected ingredients will stay in Trash for 30
+        days before automatic permanent removal.') }}
+        <footer>
+          <button type="button" class="btn btn-outline" data-close>
+            Cancel</button
+          ><button class="btn btn-primary danger-submit">Move to Trash</button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog
+      id="ingredient-trash-dialog"
+      class="ingredient-dialog ingredient-trash-dialog"
+    >
+      <div class="dialog-content">
+        {{ head('Ingredient Trash','Ingredients stay here for 30 days before
+        automatic permanent removal.') }} {% if trashed_ingredients %}
+        <div class="ingredient-trash-toolbar">
+          <span id="trashed-ingredient-count">0 selected</span>
+          <button
+            type="button"
+            id="toggle-trashed-ingredient-selection"
+            class="btn btn-outline"
+            aria-pressed="false"
+          >
+            Select
+          </button>
+          <button
+            type="button"
+            id="bulk-permanently-delete-ingredients"
+            class="icon-btn icon-btn-danger"
+            title="Permanently delete selected ingredients"
+            aria-label="Permanently delete selected ingredients"
+            disabled
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 14H6L5 6"></path>
+              <path d="M10 11v5M14 11v5"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="ingredient-trash-list">
+          {% for ingredient in trashed_ingredients %}
+          <article
+            data-trashed-ingredient-row
+            data-ingredient-id="{{ ingredient.ingredient_id }}"
+          >
+            <div class="ingredient-trash-item">
+              <input
+                type="checkbox"
+                class="trashed-ingredient-select"
+                value="{{ ingredient.ingredient_id }}"
+                aria-label="Select {{ ingredient.ingredient_name }} for permanent deletion"
+              />
+              <div>
+                <strong>{{ ingredient.ingredient_name }}</strong
+                ><small
+                  >{{ ingredient.days_remaining }} day{{ '' if
+                  ingredient.days_remaining == 1 else 's' }} remaining</small
+                >
+              </div>
+            </div>
+            <div class="ingredient-trash-actions">
+              <form method="post">
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                /><input
+                  type="hidden"
+                  name="action"
+                  value="restore_ingredient"
+                /><input
+                  type="hidden"
+                  name="ingredient_id"
+                  value="{{ ingredient.ingredient_id }}"
+                /><button class="btn btn-outline">Restore</button>
+              </form>
+              <form
+                method="post"
+                data-permanent-delete-ingredient="{{ ingredient.ingredient_name }}"
+              >
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                /><input
+                  type="hidden"
+                  name="action"
+                  value="permanently_delete_ingredient"
+                /><input
+                  type="hidden"
+                  name="ingredient_id"
+                  value="{{ ingredient.ingredient_id }}"
+                /><button class="btn ingredient-delete-permanently">
+                  Delete permanently
+                </button>
+              </form>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="ingredient-trash-empty">Trash is empty.</p>
+        {% endif %}
+      </div>
+    </dialog>
+    <form id="bulk-permanently-delete-ingredients-form" method="post" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input
+        type="hidden"
+        name="action"
+        value="permanently_delete_ingredients"
+      />
+      <div id="bulk-permanently-delete-ingredient-inputs"></div>
+    </form>
+    <dialog
+      id="ingredient-permanent-confirm"
+      class="ingredient-dialog ingredient-confirm-dialog"
+    >
+      <div class="dialog-content">
+        {{ head('Delete permanently?','This ingredient will be removed
+        immediately and cannot be restored.') }}
+        <footer>
+          <button type="button" class="btn btn-outline" data-close>
+            Cancel</button
+          ><button
+            type="button"
+            id="confirm-permanent-ingredient"
+            class="btn ingredient-delete-permanently"
+          >
+            Delete permanently
+          </button>
+        </footer>
+      </div>
+    </dialog>
+    <dialog id="batches-dialog" class="ingredient-dialog list-dialog">
+      <div class="dialog-content">
+        {{ head('All Open Batches','Earliest-expiring usable batches appear
+        first.') }}
+        <div class="batch-list">
+          {% for b in batches %}
+          <article>
+            <div>
+              <strong>{{ b.ingredient_name }}</strong
+              ><span>Batch #{{ '%03d'|format(b.batch_id) }}</span>
+            </div>
+            <div>
+              <b>{{ b.remaining_quantity }} {{ b.base_unit }}</b
+              ><span>Received {{ b.received_date.strftime('%b %d, %Y') }}</span>
+            </div>
+            <div>
+              <span>Expires</span
+              ><b
+                >{{ b.expiration_date.strftime('%b %d, %Y') if b.expiration_date
+                else 'Not set' }}</b
+              >
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+    </dialog>
+    <dialog id="history-dialog" class="ingredient-dialog list-dialog">
+      <div class="dialog-content">
+        {{ head('Inventory History','Every stock change is recorded.') }}
+        <div class="history-list">
+          {% for e in history %}
+          <article>
+            <span class="history-type {{ e.transaction_type|lower }}"
+              >{{ e.transaction_type.replace('_',' ') }}</span
+            >
+            <div>
+              <strong>{{ e.ingredient_name }}</strong
+              ><small
+                >{{ e.created_at.strftime('%b %d, %Y %I:%M %p') }} · {{
+                e.display_name }}</small
+              >
+            </div>
+            <b>{{ e.quantity }} {{ e.base_unit }}</b>
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+    </dialog>
+    <script>
+      (() => {
+        const D = Object.fromEntries(
+            [...document.querySelectorAll("dialog")].map((x) => [x.id, x]),
+          ),
+          R = [...document.querySelectorAll("[data-row]")],
+          A = document.getElementById("select-all"),
+          S = document.getElementById("ingredient-search"),
+          SF = document.getElementById("status-filter"),
+          CF = document.getElementById("category-filter"),
+          SO = document.getElementById("sort-filter"),
+          RF = document.getElementById("reset-filters"),
+          C = document.getElementById("selected-count"),
+          T = document.getElementById("toggle-selection"),
+          BE = document.getElementById("bulk-edit"),
+          BD = document.getElementById("bulk-delete"),
+          I = document.getElementById("delete-inputs"),
+          P = document.getElementById("page-buttons"),
+          PS = document.getElementById("page-summary"),
+          SC = [...document.querySelectorAll("[data-summary-filter]")],
+          IC = document.querySelector(".ingredient-card");
+        let page = 1,
+          selection = false,
+          pendingPermanentDelete = null;
+        const unitField =
+          D["ingredient-dialog"].querySelector('[name="base_unit"]');
+        const unitLabel =
+          D["ingredient-dialog"].querySelector("[data-unit-label]");
+        const unitMenu = D["ingredient-dialog"].querySelector(
+          ".ingredient-unit-menu",
+        );
+        const unitItems = unitMenu.querySelector(".ingredient-unit-options");
+        const unitTrigger = D["ingredient-dialog"].querySelector(
+          "[data-unit-trigger]",
+        );
+        const unitAddControl = D["ingredient-dialog"].querySelector(
+          ".ingredient-unit-add-control",
+        );
+        const newUnitInput = document.getElementById(
+          "ingredient-unit-new-value",
+        );
+        newUnitInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("save-ingredient-unit").click();
+          } else if (e.key === "Escape") {
+            unitAddControl.hidden = true;
+            unitTrigger.focus();
+          }
+        });
+        const trashedIngredientCheckboxes = [
+          ...document.querySelectorAll(".trashed-ingredient-select"),
+        ];
+        const trashSelectionToggle = document.getElementById(
+          "toggle-trashed-ingredient-selection",
+        );
+        const trashSelectionCount = document.getElementById(
+          "trashed-ingredient-count",
+        );
+        const trashBulkDeleteButton = document.getElementById(
+          "bulk-permanently-delete-ingredients",
+        );
+        const trashBulkDeleteForm = document.getElementById(
+          "bulk-permanently-delete-ingredients-form",
+        );
+        const trashBulkDeleteInputs = document.getElementById(
+          "bulk-permanently-delete-ingredient-inputs",
+        );
+        let trashSelectionMode = false;
+        const PAGE_SIZE = 6,
+          chosen = () => R.filter((r) => r.querySelector(".row-check").checked);
+        function syncUnitDropdown() {
+          const value = unitField.value;
+          unitLabel.textContent = value;
+          unitMenu.querySelectorAll("[data-unit-option]").forEach((option) => {
+            option.setAttribute(
+              "aria-selected",
+              String(option.dataset.unitOption === value),
+            );
+          });
+        }
+        function sel() {
+          const c = chosen(),
+            v = R.filter((r) => !r.hidden).map((r) =>
+              r.querySelector(".row-check"),
+            );
+          C && (C.textContent = c.length + " selected");
+          BE && (BE.disabled = c.length !== 1);
+          BD && (BD.disabled = !c.length);
+          if (A) {
+            A.checked = v.length > 0 && v.every((x) => x.checked);
+            A.indeterminate = v.some((x) => x.checked) && !A.checked;
+          }
+        }
+        function render() {
+          const q = (S?.value || "").trim().toLowerCase(),
+            status = SF?.value || "",
+            unit = CF?.value || "",
+            sort = SO?.value || "name";
+          let f = R.filter(
+            (r) =>
+              r.dataset.name.includes(q) &&
+              (!status || r.dataset.summaryClass === status) &&
+              (!unit || r.dataset.unit === unit),
+          );
+          f.sort((a, b) =>
+            sort === "stock-asc"
+              ? Number(a.dataset.stock) - Number(b.dataset.stock)
+              : sort === "stock-desc"
+                ? Number(b.dataset.stock) - Number(a.dataset.stock)
+                : sort === "expiry"
+                  ? (a.dataset.expiry || "9999").localeCompare(
+                      b.dataset.expiry || "9999",
+                    )
+                  : a.dataset.name.localeCompare(b.dataset.name),
+          );
+          const n = Math.max(1, Math.ceil(f.length / PAGE_SIZE));
+          page = Math.min(page, n);
+          R.forEach((r) => (r.hidden = true));
+          const start = (page - 1) * PAGE_SIZE;
+          f.slice(start, start + PAGE_SIZE).forEach((r) => {
+            r.hidden = false;
+            r.parentElement.appendChild(r);
+          });
+          const empty = document.getElementById("search-empty");
+          if (empty) {
+            empty.hidden = f.length > 0;
+            if (!f.length) {
+              empty.textContent =
+                status === "enough"
+                  ? "No ingredients with enough stock to show."
+                  : status === "low"
+                    ? "No low-stock ingredients to show."
+                    : status === "out"
+                      ? "No out-of-stock ingredients to show."
+                      : status === "expiring"
+                        ? "No expiring ingredients to show."
+                        : "No ingredients match your current filters.";
+            }
+          }
+          SC.forEach((card) => {
+            const active = card.dataset.summaryFilter === status;
+            card.classList.toggle("active", active);
+            card.setAttribute("aria-pressed", String(active));
+          });
+          if (PS)
+            PS.textContent =
+              "Showing " +
+              (f.length ? start + 1 : 0) +
+              "–" +
+              Math.min(start + PAGE_SIZE, f.length) +
+              " of " +
+              f.length +
+              " ingredients";
+          if (P) {
+            P.replaceChildren();
+            const add = (t, p, d, a, kind = "") => {
+              const b = document.createElement("button");
+              b.type = "button";
+              b.textContent = t;
+              b.className =
+                "page-button" + (a ? " active" : "") + (kind ? " " + kind : "");
+              b.disabled = d;
+              b.onclick = () => {
+                page = p;
+                render();
+              };
+              P.appendChild(b);
+            };
+            add("‹", page - 1, page === 1);
+            for (let x = 1; x <= n; x++) add(x, x, false, x === page);
+            add("›", page + 1, page === n);
+          }
+          sel();
+        }
+        function edit(b) {
+          const d = D["ingredient-dialog"],
+            f = d.querySelector("form");
+          f.reset();
+          f.querySelector("[name=action]").value = "edit_ingredient";
+          f.ingredient_id.value = b.dataset.id;
+          f.ingredient_name.value = b.dataset.label || b.dataset.name;
+          f.base_unit.value = b.dataset.unit.toLowerCase();
+          f.low_stock_threshold.value = b.dataset.threshold;
+          syncUnitDropdown();
+          d.querySelector("h2").textContent = "Edit Ingredient";
+          d.showModal();
+        }
+        function remove(a) {
+          if (!a.length) return;
+          I.replaceChildren();
+          a.forEach((r) => {
+            const i = document.createElement("input");
+            i.type = "hidden";
+            i.name = "ingredient_id";
+            i.value = r.dataset.id;
+            I.appendChild(i);
+          });
+          D["delete-dialog"].querySelector("h2").textContent =
+            "Move " +
+            a.length +
+            " ingredient" +
+            (a.length === 1 ? "" : "s") +
+            " to Trashbin?";
+          D["delete-dialog"].showModal();
+        }
+        document.addEventListener("click", (e) => {
+          const removeUnit = e.target.closest("[data-remove-unit]");
+          if (removeUnit) {
+            const value = removeUnit.dataset.removeUnit;
+            removeUnit.closest(".ingredient-unit-row").remove();
+            [...unitField.options]
+              .find((option) => option.value === value)
+              ?.remove();
+            if (unitField.value === value) {
+              unitField.value = unitField.options[0]?.value || "";
+            }
+            syncUnitDropdown();
+            return;
+          }
+          const unitOption = e.target.closest("[data-unit-option]");
+          if (unitOption) {
+            unitField.value = unitOption.dataset.unitOption;
+            syncUnitDropdown();
+            unitMenu.hidden = true;
+            unitTrigger.setAttribute("aria-expanded", "false");
+            unitTrigger.focus();
+            return;
+          }
+          const unitButton = e.target.closest("[data-unit-trigger]");
+          if (unitButton) {
+            unitMenu.hidden = !unitMenu.hidden;
+            unitButton.setAttribute("aria-expanded", String(!unitMenu.hidden));
+            return;
+          }
+          const addUnit = e.target.closest("[data-unit-add]");
+          if (addUnit) {
+            unitMenu.hidden = true;
+            unitTrigger.setAttribute("aria-expanded", "false");
+            unitAddControl.hidden = false;
+            newUnitInput.value = "";
+            newUnitInput.focus();
+            return;
+          }
+          if (e.target.closest("#save-ingredient-unit")) {
+            const value = newUnitInput.value.trim().toLowerCase();
+            if (
+              !value ||
+              value.length > 40 ||
+              [...value].some((character) => character.charCodeAt(0) < 32)
+            ) {
+              newUnitInput.focus();
+              return;
+            }
+            const existing = [...unitField.options].find(
+              (option) => option.value.toLowerCase() === value,
+            );
+            if (existing) {
+              unitField.value = existing.value;
+            } else {
+              const option = new Option(value, value);
+              unitField.add(option);
+              const row = document.createElement("div");
+              row.className = "ingredient-unit-row";
+              const choose = document.createElement("button");
+              choose.type = "button";
+              choose.setAttribute("role", "option");
+              choose.setAttribute("aria-selected", "false");
+              choose.dataset.unitOption = value;
+              choose.textContent = value;
+              const remove = document.createElement("button");
+              remove.type = "button";
+              remove.className = "ingredient-unit-remove";
+              remove.dataset.removeUnit = value;
+              remove.setAttribute("aria-label", "Remove " + value);
+              remove.textContent = "×";
+              row.append(choose, remove);
+              unitItems.appendChild(row);
+              unitField.value = value;
+            }
+            syncUnitDropdown();
+            unitAddControl.hidden = true;
+            unitTrigger.focus();
+            return;
+          }
+          if (e.target.closest("#cancel-ingredient-unit")) {
+            unitAddControl.hidden = true;
+            return;
+          }
+          if (!e.target.closest(".ingredient-unit-dropdown")) {
+            unitMenu.hidden = true;
+            unitTrigger.setAttribute("aria-expanded", "false");
+          }
+          const o = e.target.closest("[data-open]");
+          if (o) {
+            const d = D[o.dataset.open];
+            if (o.dataset.open === "ingredient-dialog") {
+              const f = d.querySelector("form");
+              f.reset();
+              f.querySelector("[name=action]").value = "add_ingredient";
+              f.ingredient_id.value = "";
+              unitAddControl.hidden = true;
+              syncUnitDropdown();
+              d.querySelector("h2").textContent = "Add Ingredient";
+            }
+            d?.showModal();
+            o.closest(".ingredient-manage-menu")?.removeAttribute("open");
+          }
+          const c = e.target.closest("[data-close]");
+          c?.closest("dialog")?.close();
+          const x = e.target.closest("[data-edit]");
+          x && edit(x);
+          const del = e.target.closest("[data-delete]");
+          del && remove([del.closest("[data-row]")]);
+        });
+        function updateTrashSelection() {
+          const selected = trashedIngredientCheckboxes.filter(
+            (checkbox) => checkbox.checked,
+          );
+          trashSelectionCount.textContent = selected.length + " selected";
+          trashBulkDeleteButton.disabled = selected.length === 0;
+        }
+        trashSelectionToggle?.addEventListener("click", () => {
+          trashSelectionMode = !trashSelectionMode;
+          D["ingredient-trash-dialog"].classList.toggle(
+            "selection-mode",
+            trashSelectionMode,
+          );
+          trashSelectionToggle.setAttribute(
+            "aria-pressed",
+            String(trashSelectionMode),
+          );
+          trashSelectionToggle.textContent = trashSelectionMode
+            ? "Cancel"
+            : "Select";
+          if (!trashSelectionMode) {
+            trashedIngredientCheckboxes.forEach((checkbox) => {
+              checkbox.checked = false;
+            });
+          }
+          updateTrashSelection();
+        });
+        trashedIngredientCheckboxes.forEach((checkbox) => {
+          checkbox.addEventListener("change", updateTrashSelection);
+        });
+        trashBulkDeleteButton?.addEventListener("click", () => {
+          const selected = trashedIngredientCheckboxes.filter(
+            (checkbox) => checkbox.checked,
+          );
+          if (!selected.length) return;
+          trashBulkDeleteInputs.replaceChildren();
+          selected.forEach((checkbox) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = "ingredient_id";
+            input.value = checkbox.value;
+            trashBulkDeleteInputs.appendChild(input);
+          });
+          pendingPermanentDelete = trashBulkDeleteForm;
+          const confirm = D["ingredient-permanent-confirm"];
+          confirm.querySelector("h2").textContent =
+            "Delete " + selected.length + " selected ingredients permanently?";
+          confirm.querySelector("p").textContent =
+            "These ingredients will be removed immediately and cannot be restored.";
+          confirm.showModal();
+        });
+        document.addEventListener("submit", (e) => {
+          const form = e.target.closest("[data-permanent-delete-ingredient]");
+          if (!form || form.dataset.confirmed === "yes") return;
+          e.preventDefault();
+          pendingPermanentDelete = form;
+          const name = form.dataset.permanentDeleteIngredient;
+          D["ingredient-permanent-confirm"].querySelector("h2").textContent =
+            "Delete “" + name + "” permanently?";
+          D["ingredient-permanent-confirm"].showModal();
+        });
+        document
+          .getElementById("confirm-permanent-ingredient")
+          ?.addEventListener("click", () => {
+            if (!pendingPermanentDelete) return;
+            pendingPermanentDelete.dataset.confirmed = "yes";
+            D["ingredient-permanent-confirm"].close();
+            pendingPermanentDelete.requestSubmit();
+            pendingPermanentDelete = null;
+          });
+        document.querySelectorAll("dialog").forEach(
+          (d) =>
+            (d.onclick = (e) => {
+              if (e.target === d) d.close();
+            }),
+        );
+        R.forEach((r) => (r.querySelector(".row-check").onchange = sel));
+        A &&
+          (A.onchange = () => {
+            R.filter((r) => !r.hidden).forEach(
+              (r) => (r.querySelector(".row-check").checked = A.checked),
+            );
+            sel();
+          });
+        T &&
+          (T.onclick = () => {
+            selection = !selection;
+            document.body.classList.toggle(
+              "ingredient-selection-mode",
+              selection,
+            );
+            T.textContent = selection ? "Cancel" : "Select";
+            T.setAttribute("aria-pressed", String(selection));
+            if (!selection)
+              R.forEach((r) => (r.querySelector(".row-check").checked = false));
+            sel();
+          });
+        BE &&
+          (BE.onclick = () => {
+            const r = chosen()[0];
+            r && edit(r);
+          });
+        BD && (BD.onclick = () => remove(chosen()));
+        [S, SF, CF, SO].forEach(
+          (x) =>
+            x &&
+            (x.oninput = () => {
+              page = 1;
+              render();
+            }),
+        );
+        SC.forEach((card) => {
+          card.onclick = () => {
+            const selected = card.dataset.summaryFilter;
+            SF.value = SF.value === selected ? "" : selected;
+            page = 1;
+            render();
+            IC?.scrollIntoView({ behavior: "smooth", block: "start" });
+          };
+        });
+        RF &&
+          (RF.onclick = () => {
+            S.value = "";
+            SF.value = "";
+            CF.value = "";
+            SO.value = "name";
+            page = 1;
+            render();
+          });
+        const ai = document.getElementById("adjust-ingredient"),
+          ac = document.getElementById("adjustment-current");
+        ai &&
+          (ai.onchange = () => {
+            const o = ai.selectedOptions[0];
+            ac.textContent = o?.value
+              ? "Foodcast currently shows " +
+                o.dataset.stock +
+                " " +
+                o.dataset.unit +
+                " of usable stock."
+              : "Choose an ingredient to see its current usable stock.";
+          });
+        const restocks = [
+            ...document.querySelectorAll("#restock-sources>span"),
+          ],
+          rp = document.getElementById("restock-previous"),
+          rn = document.getElementById("restock-next");
+        let ri = 0;
+        function showRestock() {
+          if (!restocks.length) return;
+          const item = restocks[ri];
+          document.getElementById("restock-title").textContent =
+            "Restock " + item.dataset.name;
+          document.getElementById("restock-reason").textContent =
+            item.dataset.reason;
+          document.getElementById("restock-available").textContent =
+            item.dataset.available;
+          document.getElementById("restock-required").textContent =
+            item.dataset.required;
+          document.getElementById("restock-recommended").textContent =
+            item.dataset.recommended;
+          document.getElementById("restock-position").textContent =
+            ri + 1 + " / " + restocks.length;
+          rp.disabled = ri === 0;
+          rn.disabled = ri === restocks.length - 1;
+        }
+        rp &&
+          (rp.onclick = () => {
+            if (ri > 0) {
+              ri--;
+              showRestock();
+            }
+          });
+        rn &&
+          (rn.onclick = () => {
+            if (ri < restocks.length - 1) {
+              ri++;
+              showRestock();
+            }
+          });
+        showRestock();
+        syncUnitDropdown();
+        const addDialog = D["ingredient-dialog"];
+        if (addDialog.dataset.reopenOnLoad === "true") addDialog.showModal();
+        const addedToast = document.getElementById("ingredient-added-toast");
+        if (addedToast) window.setTimeout(() => addedToast.remove(), 2000);
+        render();
+      })();
+    </script>
+  </body>
+</html>

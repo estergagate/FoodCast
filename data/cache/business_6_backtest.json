@@ -1,0 +1,48 @@
+{
+  "available": true,
+  "products_tested": 5,
+  "predictions_tested": 150,
+  "mae": 3.25,
+  "rmse": 6.79,
+  "relative_mae": 12.82,
+  "reliability": "High",
+  "reliability_class": "high",
+  "reliability_message": "Past estimates were generally close to actual sales.",
+  "products": [
+    {
+      "product_name": "Banette",
+      "test_days": 30,
+      "mae": 3.35,
+      "rmse": 7.36,
+      "relative_mae": 10.05
+    },
+    {
+      "product_name": "Coupe",
+      "test_days": 30,
+      "mae": 4.79,
+      "rmse": 9.29,
+      "relative_mae": 17.53
+    },
+    {
+      "product_name": "Croissant",
+      "test_days": 30,
+      "mae": 1.76,
+      "rmse": 2.11,
+      "relative_mae": 7.62
+    },
+    {
+      "product_name": "Pain Au Chocolat",
+      "test_days": 30,
+      "mae": 4.73,
+      "rmse": 9.04,
+      "relative_mae": 19.91
+    },
+    {
+      "product_name": "Traditional Baguette",
+      "test_days": 30,
+      "mae": 1.6,
+      "rmse": 1.92,
+      "relative_mae": 8.39
+    }
+  ]
+}

@@ -1,0 +1,276 @@
+{
+    "dataset": "French bakery daily sales from Kaggle",
+    "unit": "pieces",
+    "history_end": "2022-09-30",
+    "forecast_start": "2022-10-01",
+    "forecast_end": "2022-10-07",
+    "products": [
+        {
+            "product": "Traditional Baguette",
+            "source_product": "TRADITIONAL BAGUETTE",
+            "unit": "pieces",
+            "historical_7_day_total": 1165.0,
+            "predicted_demand": 1159.83,
+            "demand_level": "Normal",
+            "daily_forecast": [
+                {
+                    "date": "2022-10-01",
+                    "quantity": 196.03
+                },
+                {
+                    "date": "2022-10-02",
+                    "quantity": 248.86
+                },
+                {
+                    "date": "2022-10-03",
+                    "quantity": 165.12
+                },
+                {
+                    "date": "2022-10-04",
+                    "quantity": 138.27
+                },
+                {
+                    "date": "2022-10-05",
+                    "quantity": 133.47
+                },
+                {
+                    "date": "2022-10-06",
+                    "quantity": 138.4
+                },
+                {
+                    "date": "2022-10-07",
+                    "quantity": 139.68
+                }
+            ]
+        },
+        {
+            "product": "Croissant",
+            "source_product": "CROISSANT",
+            "unit": "pieces",
+            "historical_7_day_total": 270.0,
+            "predicted_demand": 292.39,
+            "demand_level": "Normal",
+            "daily_forecast": [
+                {
+                    "date": "2022-10-01",
+                    "quantity": 56.84
+                },
+                {
+                    "date": "2022-10-02",
+                    "quantity": 95.57
+                },
+                {
+                    "date": "2022-10-03",
+                    "quantity": 28.34
+                },
+                {
+                    "date": "2022-10-04",
+                    "quantity": 29.36
+                },
+                {
+                    "date": "2022-10-05",
+                    "quantity": 26.24
+                },
+                {
+                    "date": "2022-10-06",
+                    "quantity": 27.24
+                },
+                {
+                    "date": "2022-10-07",
+                    "quantity": 28.8
+                }
+            ]
+        },
+        {
+            "product": "Pain Au Chocolat",
+            "source_product": "PAIN AU CHOCOLAT",
+            "unit": "pieces",
+            "historical_7_day_total": 229.0,
+            "predicted_demand": 222.22,
+            "demand_level": "Normal",
+            "daily_forecast": [
+                {
+                    "date": "2022-10-01",
+                    "quantity": 39.99
+                },
+                {
+                    "date": "2022-10-02",
+                    "quantity": 58.15
+                },
+                {
+                    "date": "2022-10-03",
+                    "quantity": 21.89
+                },
+                {
+                    "date": "2022-10-04",
+                    "quantity": 21.83
+                },
+                {
+                    "date": "2022-10-05",
+                    "quantity": 23.66
+                },
+                {
+                    "date": "2022-10-06",
+                    "quantity": 27.07
+                },
+                {
+                    "date": "2022-10-07",
+                    "quantity": 29.63
+                }
+            ]
+        },
+        {
+            "product": "Coupe",
+            "source_product": "COUPE",
+            "unit": "pieces",
+            "historical_7_day_total": 225.0,
+            "predicted_demand": 259.68,
+            "demand_level": "High",
+            "daily_forecast": [
+                {
+                    "date": "2022-10-01",
+                    "quantity": 53.32
+                },
+                {
+                    "date": "2022-10-02",
+                    "quantity": 51.57
+                },
+                {
+                    "date": "2022-10-03",
+                    "quantity": 24.72
+                },
+                {
+                    "date": "2022-10-04",
+                    "quantity": 29.72
+                },
+                {
+                    "date": "2022-10-05",
+                    "quantity": 24.92
+                },
+                {
+                    "date": "2022-10-06",
+                    "quantity": 38.07
+                },
+                {
+                    "date": "2022-10-07",
+                    "quantity": 37.36
+                }
+            ]
+        },
+        {
+            "product": "Banette",
+            "source_product": "BANETTE",
+            "unit": "pieces",
+            "historical_7_day_total": 202.0,
+            "predicted_demand": 236.86,
+            "demand_level": "High",
+            "daily_forecast": [
+                {
+                    "date": "2022-10-01",
+                    "quantity": 37.9
+                },
+                {
+                    "date": "2022-10-02",
+                    "quantity": 43.45
+                },
+                {
+                    "date": "2022-10-03",
+                    "quantity": 30.62
+                },
+                {
+                    "date": "2022-10-04",
+                    "quantity": 31.2
+                },
+                {
+                    "date": "2022-10-05",
+                    "quantity": 30.5
+                },
+                {
+                    "date": "2022-10-06",
+                    "quantity": 31.54
+                },
+                {
+                    "date": "2022-10-07",
+                    "quantity": 31.65
+                }
+            ]
+        }
+    ],
+    "chart": {
+        "actual_sales": [
+            {
+                "date": "2022-09-24",
+                "quantity": 341.0
+            },
+            {
+                "date": "2022-09-25",
+                "quantity": 495.0
+            },
+            {
+                "date": "2022-09-26",
+                "quantity": 256.0
+            },
+            {
+                "date": "2022-09-27",
+                "quantity": 245.0
+            },
+            {
+                "date": "2022-09-28",
+                "quantity": 190.0
+            },
+            {
+                "date": "2022-09-29",
+                "quantity": 268.0
+            },
+            {
+                "date": "2022-09-30",
+                "quantity": 296.0
+            }
+        ],
+        "forecasted_sales": [
+            {
+                "date": "2022-10-01",
+                "quantity": 384.08
+            },
+            {
+                "date": "2022-10-02",
+                "quantity": 497.6
+            },
+            {
+                "date": "2022-10-03",
+                "quantity": 270.69
+            },
+            {
+                "date": "2022-10-04",
+                "quantity": 250.38
+            },
+            {
+                "date": "2022-10-05",
+                "quantity": 238.79
+            },
+            {
+                "date": "2022-10-06",
+                "quantity": 262.32
+            },
+            {
+                "date": "2022-10-07",
+                "quantity": 267.12
+            }
+        ]
+    },
+    "summary": {
+        "total_predicted_sales": 2170.98,
+        "average_daily_sales": 310.14,
+        "highest_predicted_sales": 497.6,
+        "highest_sales_date": "2022-10-02",
+        "lowest_predicted_sales": 238.79,
+        "lowest_sales_date": "2022-10-05"
+    },
+    "primary_forecast": {
+        "product": "Traditional Baguette",
+        "quantity": 196.03,
+        "forecast_date": "2022-10-01",
+        "history_end": "2022-09-30",
+        "unit": "pieces"
+    }
+}

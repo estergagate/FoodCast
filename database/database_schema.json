@@ -1,0 +1,253 @@
+{
+  "database": {
+    "name": "ai_sales_system",
+    "engine": "InnoDB",
+    "charset": "utf8mb4",
+    "collation": "utf8mb4_unicode_ci"
+  },
+  "creation_order": [
+    "users",
+    "businesses",
+    "products",
+    "product_unit_setup",
+    "product_units",
+    "daily_sales",
+    "stock_movements",
+    "forecast_runs",
+    "forecast_product_days"
+  ],
+  "tables": {
+    "users": {
+      "description": "Login accounts for businesses and cashiers.",
+      "primary_key": "user_id",
+      "columns": {
+        "user_id": "INT AUTO_INCREMENT NOT NULL",
+        "username": "VARCHAR(50) NOT NULL",
+        "password_hash": "VARCHAR(255) NOT NULL",
+        "role": "ENUM('Business', 'Cashier') NOT NULL",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "unique_keys": [
+        ["username"]
+      ]
+    },
+    "businesses": {
+      "description": "One business profile for each Business user.",
+      "primary_key": "business_id",
+      "columns": {
+        "business_id": "INT AUTO_INCREMENT NOT NULL",
+        "user_id": "INT NOT NULL",
+        "business_name": "VARCHAR(100) NOT NULL",
+        "business_type": "ENUM('Bakery', 'Carinderia', 'Food Stall') NOT NULL",
+        "location_latitude": "DECIMAL(9,6) NULL",
+        "location_longitude": "DECIMAL(9,6) NULL",
+        "location_name": "VARCHAR(150) NULL",
+        "location_accuracy_m": "INT UNSIGNED NULL",
+        "location_updated_at": "DATETIME NULL",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "unique_keys": [
+        ["user_id"]
+      ],
+      "foreign_keys": [
+        {
+          "column": "user_id",
+          "references": "users.user_id",
+          "on_delete": "RESTRICT"
+        }
+      ]
+    },
+    "products": {
+      "description": "Products owned by individual businesses.",
+      "primary_key": "product_id",
+      "columns": {
+        "product_id": "INT AUTO_INCREMENT NOT NULL",
+        "business_id": "INT NOT NULL",
+        "product_name": "VARCHAR(100) NOT NULL",
+        "category": "ENUM('Bread', 'Pastry', 'Beverage', 'Meal', 'Snack', 'Dessert', 'Other') DEFAULT 'Other'",
+        "selling_unit": "VARCHAR(40) NOT NULL",
+        "selling_price": "DECIMAL(10,2) NOT NULL",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "unique_keys": [
+        ["business_id", "product_name"]
+      ],
+      "foreign_keys": [
+        {
+          "column": "business_id",
+          "references": "businesses.business_id",
+          "on_delete": "RESTRICT"
+        }
+      ],
+      "checks": [
+        "selling_price >= 0"
+      ]
+    },
+    "product_unit_setup": {
+      "description": "Tracks businesses that completed selling-unit setup.",
+      "primary_key": "business_id",
+      "columns": {
+        "business_id": "INT NOT NULL"
+      },
+      "foreign_keys": [
+        {
+          "column": "business_id",
+          "references": "businesses.business_id",
+          "on_delete": "CASCADE"
+        }
+      ]
+    },
+    "product_units": {
+      "description": "Custom selling units belonging to each business.",
+      "primary_key": "unit_id",
+      "columns": {
+        "unit_id": "INT AUTO_INCREMENT NOT NULL",
+        "business_id": "INT NOT NULL",
+        "name": "VARCHAR(40) NOT NULL"
+      },
+      "unique_keys": [
+        ["business_id", "name"]
+      ],
+      "foreign_keys": [
+        {
+          "column": "business_id",
+          "references": "businesses.business_id",
+          "on_delete": "CASCADE"
+        }
+      ]
+    },
+    "daily_sales": {
+      "description": "One daily sales record per product and date.",
+      "primary_key": "sale_id",
+      "columns": {
+        "sale_id": "INT AUTO_INCREMENT NOT NULL",
+        "product_id": "INT NOT NULL",
+        "sale_date": "DATE NOT NULL",
+        "quantity_sold": "INT NOT NULL",
+        "sales_amount": "DECIMAL(12,2) NOT NULL",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "unique_keys": [
+        ["product_id", "sale_date"]
+      ],
+      "foreign_keys": [
+        {
+          "column": "product_id",
+          "references": "products.product_id",
+          "on_delete": "RESTRICT"
+        }
+      ],
+      "checks": [
+        "quantity_sold >= 0",
+        "sales_amount >= 0",
+        "quantity_sold > 0 OR sales_amount = 0"
+      ]
+    },
+    "stock_movements": {
+      "description": "Stock additions, sales, waste, and adjustments.",
+      "primary_key": "movement_id",
+      "columns": {
+        "movement_id": "INT AUTO_INCREMENT NOT NULL",
+        "product_id": "INT NOT NULL",
+        "sale_id": "INT NULL",
+        "movement_type": "ENUM('Stock In', 'Sold', 'Waste', 'Adjustment In', 'Adjustment Out') NOT NULL",
+        "quantity": "INT NOT NULL",
+        "notes": "VARCHAR(255) NOT NULL DEFAULT ''",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "unique_keys": [
+        ["sale_id"]
+      ],
+      "foreign_keys": [
+        {
+          "column": "product_id",
+          "references": "products.product_id",
+          "on_delete": "RESTRICT"
+        },
+        {
+          "column": "sale_id",
+          "references": "daily_sales.sale_id",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "checks": [
+        "quantity > 0"
+      ]
+    },
+    "forecast_runs": {
+      "description": "One generated forecast request for a business.",
+      "primary_key": "forecast_run_id",
+      "columns": {
+        "forecast_run_id": "INT AUTO_INCREMENT NOT NULL",
+        "business_id": "INT NOT NULL",
+        "forecast_days": "TINYINT NOT NULL",
+        "sales_history_end_date": "DATE NOT NULL",
+        "generated_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "foreign_keys": [
+        {
+          "column": "business_id",
+          "references": "businesses.business_id",
+          "on_delete": "RESTRICT"
+        }
+      ],
+      "checks": [
+        "forecast_days IN (1, 7)"
+      ],
+      "indexes": [
+        ["business_id", "generated_at"]
+      ]
+    },
+    "forecast_product_days": {
+      "description": "Daily product predictions belonging to a forecast run.",
+      "primary_key": "forecast_product_day_id",
+      "columns": {
+        "forecast_product_day_id": "INT AUTO_INCREMENT NOT NULL",
+        "forecast_run_id": "INT NOT NULL",
+        "product_id": "INT NOT NULL",
+        "forecast_date": "DATE NOT NULL",
+        "method_used": "ENUM('Not enough history', 'Day-of-week average', 'Random Forest') NOT NULL",
+        "sales_history_days": "INT NOT NULL",
+        "predicted_quantity": "DECIMAL(12,2) NOT NULL",
+        "available_stock": "INT NOT NULL",
+        "recommended_to_prepare": "DECIMAL(12,2) NOT NULL",
+        "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+      },
+      "unique_keys": [
+        [
+          "forecast_run_id",
+          "product_id",
+          "forecast_date"
+        ]
+      ],
+      "foreign_keys": [
+        {
+          "column": "forecast_run_id",
+          "references": "forecast_runs.forecast_run_id",
+          "on_delete": "CASCADE"
+        },
+        {
+          "column": "product_id",
+          "references": "products.product_id",
+          "on_delete": "RESTRICT"
+        }
+      ],
+      "checks": [
+        "sales_history_days >= 0",
+        "predicted_quantity >= 0",
+        "available_stock >= 0",
+        "recommended_to_prepare >= 0"
+      ],
+      "indexes": [
+        ["product_id", "forecast_date"]
+      ]
+    }
+  },
+  "data_isolation": {
+    "rule": "Business data is separated through businesses.business_id.",
+    "products": "products.business_id",
+    "sales": "daily_sales -> products -> business_id",
+    "stock": "stock_movements -> products -> business_id",
+    "forecasts": "forecast_runs.business_id"
+  }
+}

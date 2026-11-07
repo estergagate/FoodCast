@@ -1,0 +1,11 @@
+{
+    "dataset": "French bakery daily sales from Kaggle",
+    "product": "TRADITIONAL BAGUETTE",
+    "forecast_date": "2022-10-01",
+    "history_end": "2022-09-30",
+    "predicted_quantity": 196.03,
+    "unit": "pieces",
+    "training_records": 637,
+    "typical_price_eur": 1.2,
+    "actual_quantity": null
+}
